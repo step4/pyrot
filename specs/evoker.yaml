@@ -1,0 +1,23 @@
+augmentation:
+  - spell: hover
+    keybind: '1'
+  - spell: ebonmight
+    keybind: '2'
+  - spell: livingflame
+    keybind: '3'
+  - spell: eruption
+    keybind: '4'
+  - spell: blisteringscales
+    keybind: '5'
+  - spell: blessingofthebronze
+    keybind: 'ctrl+f4'
+  - spell: upheaval
+    keybind: 'q'
+  - spell: firebreath
+    keybind: 'r'
+  - spell: tipthescales
+    keybind: 'shift+3'
+  - spell: breathofeons
+    keybind: 'shift+f'
+  - spell: prescience
+    keybind: 'v'

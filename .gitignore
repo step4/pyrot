@@ -165,3 +165,5 @@ icons/*
 .vscode/
 
 poc*
+dbg/
+dist*

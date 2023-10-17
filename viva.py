@@ -37,8 +37,6 @@ def to_frame(img):
     return cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
 
-Image.Image
-
 # img_files = os.listdir("augmentation")
 profile = "devastation"
 img_files = os.listdir(profile)
