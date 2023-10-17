@@ -6,6 +6,7 @@ import yaml
 class SpecKeybind(BaseModel):
     spell: str
     keybind: str
+    icon_name: str = ""
 
 
 class Specs(BaseModel):

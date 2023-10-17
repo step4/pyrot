@@ -1,8 +1,8 @@
 icons_path: icons
 klass: evoker
-looker_size: 46
-looker_x: 1782
-looker_y: 1015
-spec: augmentation
+looker_size: 43
+looker_x: 2055
+looker_y: 982
+spec: devastation
 specs_path: specs
-toggle_keybind: 'ctrl+alt+m'
+toggle_keybind: t

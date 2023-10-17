@@ -8,15 +8,15 @@ import httpx
 from httpx import Response
 from PIL import Image
 
-from specs.specs import SpecKeybind
+from specs import SpecKeybind
 
 
 customtkinter.set_default_color_theme("dark-blue")
 
 
-async def get_class_spell_icon_names(klass: str) -> list[str]:
+async def get_class_spell_icon_names(search_term: str) -> list[str]:
     async with httpx.AsyncClient() as c:
-        r = await c.get(f"https://www.wowhead.com/icons/name:{klass}")
+        r = await c.get(f"https://www.wowhead.com/icons/name:{search_term}")
     res = re.search(r"new Listview\(\s?.*data:(.*)}\s?\);", r.text)
     if not res:
         raise ValueError("No class list found in result")
@@ -36,12 +36,15 @@ async def get_spell_icons(klass: str, names: list[str], save_path: Path):
             f.write(res.content)
 
 
-async def get_klass_spell_icons(klass: str, icon_path: Path):
+async def get_klass_spell_icons(klass: str, icon_path: Path, search_term: str | None = None):
     klass_path = icon_path / klass
     if not klass_path.exists():
         klass_path.mkdir()
 
-    names = await get_class_spell_icon_names(klass)
+    if not search_term:
+        search_term = klass
+
+    names = await get_class_spell_icon_names(search_term)
     await get_spell_icons(klass, names, klass_path)
 
 
@@ -50,7 +53,9 @@ def load_spell_icons_by_spec(
 ) -> list[tuple[SpecKeybind, Image.Image]]:
     spec_with_icons: list[tuple[SpecKeybind, Image.Image]] = []
     for spec_keybind in spec:
-        icon = next((icons_path / klass).glob(f"ability_{klass}_{spec_keybind.spell}.jpg"), None)
+        icon = next((icons_path / klass).glob(f"*_{spec_keybind.icon_name}.jpg"), None)
+        if not icon:
+            icon = next((icons_path / klass).glob(f"*_{spec_keybind.spell}.jpg"), None)
         if not icon:
             raise ValueError(f"Icon for spell {spec_keybind.spell} not found in klass {klass}")
         spec_with_icons.append((spec_keybind, Image.open(icon)))

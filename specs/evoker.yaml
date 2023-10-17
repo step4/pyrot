@@ -3,8 +3,8 @@ augmentation:
     keybind: '1'
   - spell: ebonmight
     keybind: '2'
-  - spell: livingflame
-    keybind: '3'
+  # - spell: livingflame
+  #   keybind: '3'
   - spell: eruption
     keybind: '4'
   - spell: blisteringscales
@@ -20,4 +20,31 @@ augmentation:
   - spell: breathofeons
     keybind: 'shift+f'
   - spell: prescience
+    keybind: 'v'
+
+devastation:
+  - spell: hover
+    keybind: '1'
+  - spell: shatteringstar
+    keybind: '2'
+    icon_name: chargedblast
+  - spell: livingflame
+    keybind: '3'
+  - spell: disintegrate
+    keybind: '4'
+  - spell: eternitysurge
+    keybind: '5'
+  - spell: blessingofthebronze
+    keybind: 'ctrl+f4'
+  - spell: pyre
+    keybind: 'q'
+  - spell: azurestrike
+    keybind: 'e'
+  - spell: firebreath
+    keybind: 'r'
+  - spell: tipthescales
+    keybind: 'shift+3'
+  - spell: dragonrage
+    keybind: 'shift+4'
+  - spell: deepbreath
     keybind: 'v'

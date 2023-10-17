@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+import logging
 import os
 from pathlib import Path
 from dataclasses import dataclass
@@ -17,7 +18,7 @@ from skimage.metrics import structural_similarity, normalized_root_mse, mean_squ
 
 from config.Configuration import get_config, Configuration, write_config
 from icons import get_klass_spell_icons, load_spell_icons_by_spec
-from specs.specs import SpecKeybind, get_klasses_and_specs, get_spec
+from specs import SpecKeybind, get_klasses_and_specs, get_spec
 
 windll.shcore.SetProcessDpiAwareness(1)
 customtkinter.set_default_color_theme("dark-blue")
@@ -36,7 +37,14 @@ if cfg.klass:
 
 if cfg.klass and cfg.spec:
     current_spec = klass_list[cfg.klass][cfg.spec]
-    spec_with_icons = load_spell_icons_by_spec(cfg.icons_path, cfg.klass, current_spec)
+    try:
+        spec_with_icons = load_spell_icons_by_spec(cfg.icons_path, cfg.klass, current_spec)
+    except ValueError as e:
+        for sk in current_spec:
+            asyncio.run(get_klass_spell_icons(cfg.klass, cfg.icons_path, sk.spell))
+            if sk.icon_name:
+                asyncio.run(get_klass_spell_icons(cfg.klass, cfg.icons_path, sk.icon_name))
+        spec_with_icons = load_spell_icons_by_spec(cfg.icons_path, cfg.klass, current_spec)
 
 play = False
 
@@ -181,26 +189,32 @@ looker_image_label.grid(row=3, column=1)
 
 
 def klass_menu_cb(choice: str):
+    global current_spec
     cfg.klass = choice
+    write_config(cfg, cfg_path)
 
     if cfg.klass not in os.listdir(cfg.icons_path):
         # progressbar.grid(row=2, padx=10, sticky="ew")
         # progressbar.start()
         asyncio.run(get_klass_spell_icons(cfg.klass, cfg.icons_path))
         # progressbar.grid_forget()
+        if current_spec:
+            for sk in current_spec:
+                asyncio.run(get_klass_spell_icons(cfg.klass, cfg.icons_path, sk.spell))
+                if sk.icon_name:
+                    asyncio.run(get_klass_spell_icons(cfg.klass, cfg.icons_path, sk.icon_name))
 
     spec_menu.configure(values=list(klass_list[cfg.klass].keys()), require_redraw=True)
     spec_menu.set(cfg.spec)
-    write_config(cfg, cfg_path)
 
 
 def spec_menu_cb(spec: str):
     global spec_with_icons
     cfg.spec = spec
+    write_config(cfg, cfg_path)
 
     current_spec = klass_list[cfg.klass][cfg.spec]
     spec_with_icons = load_spell_icons_by_spec(cfg.icons_path, cfg.klass, current_spec)
-    write_config(cfg, cfg_path)
 
 
 klass_menu = customtkinter.CTkOptionMenu(tab_general, values=list(klass_list.keys()), command=klass_menu_cb)
@@ -214,12 +228,13 @@ spec_menu.set(cfg.spec)
 spec_menu.grid(row=0, column=1, padx=10)
 
 
-# def download_icons():
-#     if cfg.klass not in os.listdir(cfg.icons_path):
-#         # progressbar.grid(row=2, padx=10, sticky="ew")
-#         # progressbar.start()
-#         asyncio.run(get_klass_spell_icons(cfg.klass, cfg.icons_path))
-#         # progressbar.grid_forget()
+def download_icons():
+    global current_spec
+    if current_spec:
+        for sk in current_spec:
+            asyncio.run(get_klass_spell_icons(cfg.klass, cfg.icons_path, sk.spell))
+            if sk.icon_name:
+                asyncio.run(get_klass_spell_icons(cfg.klass, cfg.icons_path, sk.icon_name))
 
 
 # download_icon_button = customtkinter.CTkButton(tab_general, text="Download Icons", command=download_icons)
@@ -232,16 +247,16 @@ detected_image_label = customtkinter.CTkLabel(tab_general, text="")
 detected_image_label.grid(row=1, column=1)
 
 detected_spell_label = customtkinter.CTkLabel(tab_general, text="Spell: .")
-detected_spell_label.grid(row=2, column=0)
+detected_spell_label.grid(row=2, column=1)
 detected_keybind_label = customtkinter.CTkLabel(tab_general, text="Keybind: .")
-detected_keybind_label.grid(row=2, column=1)
+detected_keybind_label.grid(row=3, column=1)
 
 
 toggle_keybind_label = customtkinter.CTkLabel(tab_general, text=f"Toggle bot: '{cfg.toggle_keybind}'")
-toggle_keybind_label.grid(row=3, column=0)
+toggle_keybind_label.grid(row=2, column=0)
 
 bot_running_label = customtkinter.CTkLabel(tab_general, text=f"Bot running: {play}")
-bot_running_label.grid(row=3, column=1)
+bot_running_label.grid(row=3, column=0)
 
 bot_textbox = customtkinter.CTkTextbox(tab_general, state="disabled")
 bot_textbox.grid(row=4, columnspan=3, sticky="nsew")
@@ -265,40 +280,47 @@ def detect(
 
 
 while True:
-    img = ImageGrab.grab(
-        (cfg.looker_x, cfg.looker_y, cfg.looker_x + cfg.looker_size, cfg.looker_y + cfg.looker_size)
-    ).resize((56, 56), Image.Resampling.LANCZOS)
-    looker_img = customtkinter.CTkImage(light_image=img, size=(56, 56))
-    if tabview.get() == "Looker":
-        looker_image_label.configure(image=looker_img)
-    else:
-        image_label.configure(image=looker_img)
-    if spec_with_icons:
-        mse_val, spec_keybind, cmp = detect(img, spec_with_icons)
-        detected_image_label.configure(image=customtkinter.CTkImage(light_image=cmp, size=(56, 56)))
-        detected_spell_label.configure(text=f"Spell: {spec_keybind.spell}")
-        detected_keybind_label.configure(text=f"Keybind: {spec_keybind.keybind}")
-        bot_running_label.configure(text=f"Bot running: {play}")
+    try:
+        img = ImageGrab.grab(
+            (cfg.looker_x, cfg.looker_y, cfg.looker_x + cfg.looker_size, cfg.looker_y + cfg.looker_size)
+        ).resize((56, 56), Image.Resampling.LANCZOS)
+        looker_img = customtkinter.CTkImage(light_image=img, size=(56, 56))
+        if tabview.get() == "Looker":
+            looker_image_label.configure(image=looker_img)
+        else:
+            image_label.configure(image=looker_img)
 
-        # if spec_keybind.spell == "tipthescales":
-        #     img.save("dbg/img.png")
-        #     cmp.save("dbg/cmp.png")
-        #     for sk, i in spec_with_icons:
-        #         i.save(f"dbg/{sk.spell}.png")
+        if spec_with_icons:
+            mse_val, spec_keybind, cmp = detect(img, spec_with_icons)
+            detected_image_label.configure(image=customtkinter.CTkImage(light_image=cmp, size=(56, 56)))
+            detected_spell_label.configure(text=f"Spell: {spec_keybind.spell}")
+            detected_keybind_label.configure(text=f"Keybind: {spec_keybind.keybind}")
+            bot_running_label.configure(text=f"Bot running: {play}")
 
-        #     exit()
+            # if spec_keybind.spell == "tipthescales":
+            #     img.save("dbg/img.png")
+            #     cmp.save("dbg/cmp.png")
+            #     for sk, i in spec_with_icons:
+            #         i.save(f"dbg/{sk.spell}.png")
 
-        bot_textbox.configure(state="disabled")
-        if play:
-            keyboard.press_and_release(spec_keybind.keybind)
-            bot_textbox.configure(state="normal")
-            bot_textbox.insert(
-                "0.0",
-                f"{datetime.datetime.now().strftime('%H:%M:%S')}:'{spec_keybind.keybind}'->'{spec_keybind.spell}'\n",
-            )
+            #     exit()
 
-            sleep_time = (random.randint(10, 250) / 1000) + 0.2
-            time.sleep(sleep_time)
+            bot_textbox.configure(state="disabled")
+            if play:
+                keyboard.press_and_release(spec_keybind.keybind)
+                bot_textbox.configure(state="normal")
+                bot_textbox.insert(
+                    "0.0",
+                    f"{datetime.datetime.now().strftime('%H:%M:%S')}:'{spec_keybind.keybind}'->'{spec_keybind.spell}'\n",
+                )
 
-    app.update_idletasks()
-    app.update()
+                sleep_time = (random.randint(10, 250) / 1000) + 0.2
+                time.sleep(sleep_time)
+
+        # app.update_idletasks()
+        app.update()
+
+    except RuntimeError as e:
+        exit()
+    except AttributeError:
+        exit()

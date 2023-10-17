@@ -1,0 +1,15 @@
+retribution:
+  - spell: crusaderstrike
+    keybind: '3'
+  - spell: finalverdict
+    keybind: '4'
+    icon_name: templarsverdict
+  - spell: hammerofwrath
+    keybind: '5'
+  - spell: judgment
+    keybind: 'e'
+    icon_name: righteousfury
+  - spell: bladeofjustice
+    keybind: 'q'
+  - spell: divinestorm
+    keybind: 'f7'
